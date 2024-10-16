@@ -28,8 +28,9 @@ namespace EasyjobTestSolution.WebApi.Controllers
             try
             {
                 var token = await GetTokenAsync();
+                var result = await SendApiRequestAsync(token);
 
-                return Ok(token.AccessToken);
+                return Ok(result);
             }
             catch (HttpRequestException ex)
             {
@@ -61,6 +62,20 @@ namespace EasyjobTestSolution.WebApi.Controllers
             return token;
         }
 
-        
+        private async Task<string> SendApiRequestAsync(TokenResponse token)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, _apiUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue(token.TokenType, token.AccessToken);
+            request.Headers.Add("ej-webapi-client", "ThirdParty");
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"API request failed: {response.StatusCode}");
+            }
+
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 }
