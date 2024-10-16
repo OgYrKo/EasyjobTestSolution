@@ -7,10 +7,13 @@ namespace EasyjobTestSolution.WebApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Configuration.AddUserSecrets<Program>();
+
             // Add services to the container.
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddHttpClient();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
