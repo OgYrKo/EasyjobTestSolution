@@ -1,4 +1,7 @@
 
+using EasyjobTestSolution.WebApi.Interfaces;
+using EasyjobTestSolution.WebApi.Services;
+
 namespace EasyjobTestSolution.WebApi
 {
     public class Program
@@ -10,6 +13,8 @@ namespace EasyjobTestSolution.WebApi
             builder.Configuration.AddUserSecrets<Program>();
 
             // Add services to the container.
+
+            builder.Services.AddSingleton<ITokenService,TokenService>();
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
