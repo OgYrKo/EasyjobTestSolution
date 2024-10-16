@@ -1,7 +1,7 @@
-﻿using EasyjobTestSolution.WebApi.Models;
+﻿using EasyjobTestSolution.WebApi.Interfaces;
+using EasyjobTestSolution.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
-using System.Text.Json;
 
 namespace EasyjobTestSolution.WebApi.Controllers
 {
@@ -12,18 +12,14 @@ namespace EasyjobTestSolution.WebApi.Controllers
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
         private readonly string _itemListEndpoint;
-        private readonly string _tokenEnpoint;
-        private readonly string _username;
-        private readonly string _password;
+        private readonly ITokenService _tokenService;
 
-        public SimpleController(HttpClient httpClient, IConfiguration configuration)
+        public SimpleController(HttpClient httpClient, IConfiguration configuration, ITokenService tokenService)
         {
             _httpClient = httpClient;
             _baseUrl = configuration["ApiSettings:BaseUrl"] ?? throw new ArgumentNullException("BaseUrl not configured.");
             _itemListEndpoint = configuration["ApiSettings:Endpoints:ItemList"] ?? throw new ArgumentNullException("ItemList endpoint not configured.");
-            _tokenEnpoint = configuration["ApiSettings:Endpoints:Token"] ?? throw new ArgumentNullException("Token endpoint not configured.");
-            _username = configuration["ApiCredentials:Username"] ?? throw new ArgumentNullException("ApiCredentials:Username not configured.");
-            _password = configuration["ApiCredentials:Password"] ?? throw new ArgumentNullException("ApiCredentials:Password not configured.");
+            _tokenService = tokenService;
         }
 
         [HttpGet]
@@ -31,7 +27,7 @@ namespace EasyjobTestSolution.WebApi.Controllers
         {
             try
             {
-                var token = await GetTokenAsync();
+                var token = await _tokenService.GetTokenAsync();
                 var result = await SendApiRequestAsync(token);
 
                 return Ok(result);
@@ -44,26 +40,6 @@ namespace EasyjobTestSolution.WebApi.Controllers
             {
                 return BadRequest($"An error occurred: {ex.Message}");
             }
-        }
-
-        private async Task<TokenResponse> GetTokenAsync()
-        {
-            string tokenUrl = $"{_baseUrl}{_tokenEnpoint}";
-            var tokenRequestContent = new StringContent($"grant_type=password&username={_username}&password={_password}");
-
-            var tokenResponse = await _httpClient.PostAsync(tokenUrl, tokenRequestContent);
-
-            if (!tokenResponse.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Error when receiving a token: {tokenResponse.StatusCode}");
-            }
-
-            var responseContent = await tokenResponse.Content.ReadAsStringAsync();
-
-            var token = JsonSerializer.Deserialize<TokenResponse>(responseContent)
-                        ?? throw new InvalidOperationException("Failed to deserialize token.");
-
-            return token;
         }
 
         private async Task<string> SendApiRequestAsync(TokenResponse token)
