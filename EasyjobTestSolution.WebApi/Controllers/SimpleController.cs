@@ -10,14 +10,18 @@ namespace EasyjobTestSolution.WebApi.Controllers
     public sealed class SimpleController : ControllerBase
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiUrl;
+        private readonly string _baseUrl;
+        private readonly string _itemListEndpoint;
+        private readonly string _tokenEnpoint;
         private readonly string _username;
         private readonly string _password;
 
         public SimpleController(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _apiUrl = configuration["ApiSettings:Url"] ?? throw new ArgumentNullException("ApiSettings:Url not configured.");
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? throw new ArgumentNullException("BaseUrl not configured.");
+            _itemListEndpoint = configuration["ApiSettings:Endpoints:ItemList"] ?? throw new ArgumentNullException("ItemList endpoint not configured.");
+            _tokenEnpoint = configuration["ApiSettings:Endpoints:Token"] ?? throw new ArgumentNullException("Token endpoint not configured.");
             _username = configuration["ApiCredentials:Username"] ?? throw new ArgumentNullException("ApiCredentials:Username not configured.");
             _password = configuration["ApiCredentials:Password"] ?? throw new ArgumentNullException("ApiCredentials:Password not configured.");
         }
@@ -44,7 +48,7 @@ namespace EasyjobTestSolution.WebApi.Controllers
 
         private async Task<TokenResponse> GetTokenAsync()
         {
-            string tokenUrl = $"{_apiUrl}/token";
+            string tokenUrl = $"{_baseUrl}{_tokenEnpoint}";
             var tokenRequestContent = new StringContent($"grant_type=password&username={_username}&password={_password}");
 
             var tokenResponse = await _httpClient.PostAsync(tokenUrl, tokenRequestContent);
@@ -64,7 +68,8 @@ namespace EasyjobTestSolution.WebApi.Controllers
 
         private async Task<string> SendApiRequestAsync(TokenResponse token)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, _apiUrl);
+            string apiUrl = $"{_baseUrl}{_itemListEndpoint}";
+            var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue(token.TokenType, token.AccessToken);
             request.Headers.Add("ej-webapi-client", "ThirdParty");
 
